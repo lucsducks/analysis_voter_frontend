@@ -48,6 +48,8 @@ class _HomeScreenState extends State<HomeScreen> {
     'Yarowilca',
     'Puerto inca',
   ];
+  bool showTable = false; // Variable to toggle between chart and table
+
   @override
   void initState() {
     super.initState();
@@ -226,6 +228,12 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _toggleView() {
+    setState(() {
+      showTable = !showTable;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -242,12 +250,18 @@ class _HomeScreenState extends State<HomeScreen> {
               SidebarXItem(
                 icon: Icons.home,
                 label: 'Home',
+                selectable: true,
                 onTap: () => context.go('/'),
               ),
               SidebarXItem(
                 icon: Icons.person_3_outlined,
-                label: 'Home',
+                label: 'Personas',
                 onTap: () => context.go('/person'),
+              ),
+              SidebarXItem(
+                icon: Icons.bar_chart_outlined,
+                label: 'Resultados',
+                onTap: () => context.go('/resultados'),
               ),
             ],
           ),
@@ -307,9 +321,18 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   Padding(
                     padding: const EdgeInsets.all(8.0),
-                    child: FilledButton(
-                      onPressed: _search,
-                      child: Text('Consultar'),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        FilledButton(
+                          onPressed: _search,
+                          child: Text('Consultar'),
+                        ),
+                        ElevatedButton(
+                          onPressed: _toggleView,
+                          child: Text(showTable ? 'Gráfico' : 'Tabla'),
+                        ),
+                      ],
                     ),
                   ),
                   Expanded(
@@ -317,7 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ? Center(
                             child: CircularProgressIndicator(),
                           )
-                        : data.isEmpty
+                        : noResultsFound
                             ? Center(
                                 child: Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -330,283 +353,313 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ],
                                 ),
                               )
-                            : Column(
-                                children: [
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(8.0),
-                                      child: SfCartesianChart(
-                                        primaryXAxis: CategoryAxis(),
-                                        title: ChartTitle(
-                                            text:
-                                                'Resultados Electorales de las mesas de votación'),
-                                        legend: Legend(isVisible: true),
-                                        tooltipBehavior: TooltipBehavior(
-                                          enable: true,
-                                          builder: (dynamic data,
-                                              dynamic point,
-                                              dynamic series,
-                                              int pointIndex,
-                                              int seriesIndex) {
-                                            String mesaNumero = point.x
-                                                .toString()
-                                                .split(' ')[0];
-                                            String distrito = point.x
-                                                .toString()
-                                                .split(' ')[1];
-                                            String url =
-                                                'https://resultadoshistorico.onpe.gob.pe/ERM2022/Actas/Numero/$mesaNumero';
+                            : showTable
+                                ? PaginatedDataTable(
+                                    header: Text('Resultados Electorales'),
+                                    columns: [
+                                      DataColumn(label: Text('Departamento')),
+                                      DataColumn(label: Text('Distrito')),
+                                      DataColumn(label: Text('Mesa')),
+                                      DataColumn(label: Text('No Votantes')),
+                                      DataColumn(label: Text('Total Votos')),
+                                      DataColumn(label: Text('Votos Blancos')),
+                                      DataColumn(label: Text('Votos Nulos')),
+                                      DataColumn(
+                                          label: Text('Votos Impugnados')),
+                                      DataColumn(
+                                          label: Text('Votos Obtenidos')),
+                                    ],
+                                    source: MesasDataTableSource(
+                                        data), // Aquí pasas tu lista de datos
+                                    rowsPerPage: 7,
+                                    showCheckboxColumn: false,
+                                  )
+                                : Column(
+                                    children: [
+                                      Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(8.0),
+                                          child: SfCartesianChart(
+                                            primaryXAxis: CategoryAxis(),
+                                            title: ChartTitle(
+                                                text:
+                                                    'Resultados Electorales de las mesas de votación'),
+                                            legend: Legend(isVisible: true),
+                                            tooltipBehavior: TooltipBehavior(
+                                              enable: true,
+                                              builder: (dynamic data,
+                                                  dynamic point,
+                                                  dynamic series,
+                                                  int pointIndex,
+                                                  int seriesIndex) {
+                                                String mesaNumero = point.x
+                                                    .toString()
+                                                    .split(' ')[0];
+                                                String distrito = point.x
+                                                    .toString()
+                                                    .split(' ')[1];
+                                                String url =
+                                                    'https://resultadoshistorico.onpe.gob.pe/ERM2022/Actas/Numero/$mesaNumero';
 
-                                            return InkWell(
-                                              onTap: () async {
-                                                if (year == '2022') {
-                                                  final Uri _url =
-                                                      Uri.parse(url);
+                                                return InkWell(
+                                                  onTap: () async {
+                                                    if (year == '2022') {
+                                                      final Uri _url =
+                                                          Uri.parse(url);
 
-                                                  await launchUrl(_url,
-                                                      webOnlyWindowName:
-                                                          '_blank',
-                                                      mode: LaunchMode
-                                                          .externalApplication);
-                                                } else if (year == '2014') {
-                                                  String urlprovicional =
-                                                      'https://www.web.onpe.gob.pe/modElecciones/elecciones/elecciones2014/PRERM2014/Actas-por-numero-EM.html';
-                                                  copyToClipboard(
-                                                      mesaNumero, context);
+                                                      await launchUrl(_url,
+                                                          webOnlyWindowName:
+                                                              '_blank',
+                                                          mode: LaunchMode
+                                                              .externalApplication);
+                                                    } else if (year == '2014') {
+                                                      String urlprovicional =
+                                                          'https://www.web.onpe.gob.pe/modElecciones/elecciones/elecciones2014/PRERM2014/Actas-por-numero-EM.html';
+                                                      copyToClipboard(
+                                                          mesaNumero, context);
 
-                                                  final Uri _url =
-                                                      Uri.parse(urlprovicional);
+                                                      final Uri _url =
+                                                          Uri.parse(
+                                                              urlprovicional);
 
-                                                  await launchUrl(
-                                                    _url,
-                                                    mode: LaunchMode
-                                                        .externalApplication,
-                                                  );
-                                                } else if (year == '2014-v2') {
-                                                  String urlprovicional =
-                                                      'https://www.web.onpe.gob.pe/modElecciones/elecciones/elecciones2014/PRR2V2014/Actas-por-numero-ER.html';
-                                                  copyToClipboard(
-                                                      mesaNumero, context);
+                                                      await launchUrl(
+                                                        _url,
+                                                        mode: LaunchMode
+                                                            .externalApplication,
+                                                      );
+                                                    } else if (year ==
+                                                        '2014-v2') {
+                                                      String urlprovicional =
+                                                          'https://www.web.onpe.gob.pe/modElecciones/elecciones/elecciones2014/PRR2V2014/Actas-por-numero-ER.html';
+                                                      copyToClipboard(
+                                                          mesaNumero, context);
 
-                                                  final Uri _url =
-                                                      Uri.parse(urlprovicional);
+                                                      final Uri _url =
+                                                          Uri.parse(
+                                                              urlprovicional);
 
-                                                  await launchUrl(_url,
-                                                      mode: LaunchMode
-                                                          .externalApplication);
-                                                }
-                                              },
-                                              child: Padding(
-                                                padding:
-                                                    const EdgeInsets.all(8.0),
-                                                child: SizedBox(
-                                                  height: 50,
-                                                  width: 165,
-                                                  child: Column(
-                                                    children: [
-                                                      Text(
-                                                        'Votos validos',
-                                                        style: TextStyle(
-                                                            color: Colors.white,
-                                                            fontSize: MediaQuery.of(
-                                                                        context)
-                                                                    .size
-                                                                    .width *
-                                                                0.007,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .bold),
+                                                      await launchUrl(_url,
+                                                          mode: LaunchMode
+                                                              .externalApplication);
+                                                    }
+                                                  },
+                                                  child: Padding(
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                            8.0),
+                                                    child: SizedBox(
+                                                      height: 50,
+                                                      width: 165,
+                                                      child: Column(
+                                                        children: [
+                                                          Text(
+                                                            'Votos validos',
+                                                            style: TextStyle(
+                                                                color: Colors
+                                                                    .white,
+                                                                fontSize: MediaQuery.of(
+                                                                            context)
+                                                                        .size
+                                                                        .width *
+                                                                    0.007,
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .bold),
+                                                          ),
+                                                          Divider(),
+                                                          Text(
+                                                            'Mesa $mesaNumero $distrito: ${point.y}',
+                                                            style: TextStyle(
+                                                              color:
+                                                                  Colors.white,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .normal,
+                                                              fontSize: MediaQuery.of(
+                                                                          context)
+                                                                      .size
+                                                                      .width *
+                                                                  0.0053,
+                                                            ),
+                                                          ),
+                                                        ],
                                                       ),
-                                                      Divider(),
-                                                      Text(
-                                                        'Mesa $mesaNumero $distrito: ${point.y}',
-                                                        style: TextStyle(
-                                                          color: Colors.white,
-                                                          fontWeight:
-                                                              FontWeight.normal,
-                                                          fontSize: MediaQuery.of(
-                                                                      context)
-                                                                  .size
-                                                                  .width *
-                                                              0.0053,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                        series: <CartesianSeries<DataMesas,
-                                            String>>[
-                                          LineSeries<DataMesas, String>(
-                                            dataSource: data,
-                                            initialIsVisible: false,
-                                            xValueMapper: (DataMesas mesaData,
-                                                    _) =>
-                                                mesaData.mesaFormatted +
-                                                ' ' +
-                                                mesaData.distrito.toString(),
-                                            yValueMapper:
-                                                (DataMesas mesaData, _) =>
-                                                    mesaData.noVotantes,
-                                            name: 'No votaron',
-                                            // Enable data label
-                                            dataLabelSettings:
-                                                DataLabelSettings(
-                                                    isVisible: true),
-                                          ),
-                                          LineSeries<DataMesas, String>(
-                                            dataSource: data,
-                                            isVisibleInLegend: false,
-
-                                            xValueMapper: (DataMesas mesaData,
-                                                    _) =>
-                                                mesaData.mesaFormatted +
-                                                ' ' +
-                                                mesaData.distrito.toString(),
-                                            yValueMapper:
-                                                (DataMesas mesaData, _) =>
-                                                    mesaData.votosObtenidos,
-                                            name: 'Votos validos',
-                                            // Enable data label
-                                            dataLabelSettings:
-                                                DataLabelSettings(
-                                                    isVisible: true),
-                                          ),
-                                          LineSeries<DataMesas, String>(
-                                            dataSource: data,
-                                            initialIsVisible: false,
-                                            xValueMapper: (DataMesas mesaData,
-                                                    _) =>
-                                                mesaData.mesaFormatted +
-                                                ' ' +
-                                                mesaData.distrito.toString(),
-                                            yValueMapper:
-                                                (DataMesas mesaData, _) =>
-                                                    mesaData.votosBlancos,
-                                            name: 'Votos blancos',
-                                            // Enable data label
-                                            dataLabelSettings:
-                                                DataLabelSettings(
-                                                    isVisible: true),
-                                          ),
-                                          LineSeries<DataMesas, String>(
-                                            initialIsVisible: false,
-                                            dataSource: data,
-                                            xValueMapper: (DataMesas mesaData,
-                                                    _) =>
-                                                mesaData.mesaFormatted +
-                                                ' ' +
-                                                mesaData.distrito.toString(),
-                                            yValueMapper:
-                                                (DataMesas mesaData, _) =>
-                                                    mesaData.votosNulos,
-                                            name: 'Votos nulos',
-                                            // Enable data label
-                                            dataLabelSettings:
-                                                DataLabelSettings(
-                                                    isVisible: true),
-                                          ),
-                                          LineSeries<DataMesas, String>(
-                                            initialIsVisible: false,
-                                            isVisibleInLegend: false,
-                                            dataSource: data,
-                                            xValueMapper: (DataMesas mesaData,
-                                                    _) =>
-                                                mesaData.mesaFormatted +
-                                                ' ' +
-                                                mesaData.distrito.toString(),
-                                            yValueMapper:
-                                                (DataMesas mesaData, _) =>
-                                                    mesaData.votosImpug,
-                                            name: 'Votos impugnados',
-                                            // Enable data label
-                                            dataLabelSettings:
-                                                DataLabelSettings(
-                                                    isVisible: true),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  isProvince
-                                      ? Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceEvenly,
-                                          children: [
-                                            ElevatedButton(
-                                              onPressed: _loadPreviousPage,
-                                              child: Text('Atrás'),
-                                            ),
-                                            ElevatedButton(
-                                              onPressed: _loadNextPage,
-                                              child: Text('Siguiente'),
-                                            ),
-                                          ],
-                                        )
-                                      : Container(),
-                                  isProvince
-                                      ? Expanded(
-                                          child: Row(
-                                            children: [
-                                              Expanded(
-                                                flex: 2,
-                                                child: Padding(
-                                                  padding:
-                                                      const EdgeInsets.all(8.0),
-                                                  child: SfCartesianChart(
-                                                    primaryXAxis:
-                                                        CategoryAxis(),
-                                                    title: const ChartTitle(
-                                                        text:
-                                                            'Resultados Electorales por partido politico'),
-                                                    legend:
-                                                        Legend(isVisible: true),
-                                                    tooltipBehavior:
-                                                        TooltipBehavior(
-                                                      enable: true,
                                                     ),
-                                                    series:
-                                                        _createSeriesProvincia(),
                                                   ),
-                                                ),
+                                                );
+                                              },
+                                            ),
+                                            series: <CartesianSeries<DataMesas,
+                                                String>>[
+                                              LineSeries<DataMesas, String>(
+                                                dataSource: data,
+                                                initialIsVisible: false,
+                                                xValueMapper:
+                                                    (DataMesas mesaData, _) =>
+                                                        mesaData.mesaFormatted +
+                                                        ' ' +
+                                                        mesaData.distrito
+                                                            .toString(),
+                                                yValueMapper:
+                                                    (DataMesas mesaData, _) =>
+                                                        mesaData.noVotantes,
+                                                name: 'No votaron',
+                                                // Enable data label
+                                                dataLabelSettings:
+                                                    DataLabelSettings(
+                                                        isVisible: true),
                                               ),
-                                              Expanded(
-                                                child: Padding(
-                                                  padding:
-                                                      const EdgeInsets.all(8.0),
-                                                  child: SfCircularChart(
-                                                    title: ChartTitle(
-                                                        text:
-                                                            'Total de personas que no emitieron su voto por Provincia '),
-                                                    legend:
-                                                        Legend(isVisible: true),
-                                                    series: <PieSeries<
-                                                        DataGeneralProvincia,
-                                                        String>>[
-                                                      PieSeries<
-                                                          DataGeneralProvincia,
-                                                          String>(
-                                                        explode: true,
-                                                        explodeIndex: 0,
-                                                        dataSource:
-                                                            provinciaData,
-                                                        xValueMapper:
-                                                            (DataGeneralProvincia
-                                                                        mesaData,
-                                                                    _) =>
-                                                                mesaData
-                                                                    .provincia,
-                                                        yValueMapper:
-                                                            (DataGeneralProvincia
-                                                                        mesaData,
-                                                                    _) =>
-                                                                mesaData
-                                                                    .noVotantes,
-                                                        dataLabelMapper:
-                                                            (DataGeneralProvincia
+                                              LineSeries<DataMesas, String>(
+                                                dataSource: data,
+                                                isVisibleInLegend: false,
+                                                xValueMapper:
+                                                    (DataMesas mesaData, _) =>
+                                                        mesaData.mesaFormatted +
+                                                        ' ' +
+                                                        mesaData.distrito
+                                                            .toString(),
+                                                yValueMapper:
+                                                    (DataMesas mesaData, _) =>
+                                                        mesaData.votosObtenidos,
+                                                name: 'Votos validos',
+                                                // Enable data label
+                                                dataLabelSettings:
+                                                    DataLabelSettings(
+                                                        isVisible: true),
+                                              ),
+                                              LineSeries<DataMesas, String>(
+                                                dataSource: data,
+                                                initialIsVisible: false,
+                                                xValueMapper:
+                                                    (DataMesas mesaData, _) =>
+                                                        mesaData.mesaFormatted +
+                                                        ' ' +
+                                                        mesaData.distrito
+                                                            .toString(),
+                                                yValueMapper:
+                                                    (DataMesas mesaData, _) =>
+                                                        mesaData.votosBlancos,
+                                                name: 'Votos blancos',
+                                                // Enable data label
+                                                dataLabelSettings:
+                                                    DataLabelSettings(
+                                                        isVisible: true),
+                                              ),
+                                              LineSeries<DataMesas, String>(
+                                                initialIsVisible: false,
+                                                dataSource: data,
+                                                xValueMapper:
+                                                    (DataMesas mesaData, _) =>
+                                                        mesaData.mesaFormatted +
+                                                        ' ' +
+                                                        mesaData.distrito
+                                                            .toString(),
+                                                yValueMapper:
+                                                    (DataMesas mesaData, _) =>
+                                                        mesaData.votosNulos,
+                                                name: 'Votos nulos',
+                                                // Enable data label
+                                                dataLabelSettings:
+                                                    DataLabelSettings(
+                                                        isVisible: true),
+                                              ),
+                                              LineSeries<DataMesas, String>(
+                                                initialIsVisible: false,
+                                                isVisibleInLegend: false,
+                                                dataSource: data,
+                                                xValueMapper:
+                                                    (DataMesas mesaData, _) =>
+                                                        mesaData.mesaFormatted +
+                                                        ' ' +
+                                                        mesaData.distrito
+                                                            .toString(),
+                                                yValueMapper:
+                                                    (DataMesas mesaData, _) =>
+                                                        mesaData.votosImpug,
+                                                name: 'Votos impugnados',
+                                                // Enable data label
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      isProvince
+                                          ? Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.spaceEvenly,
+                                              children: [
+                                                ElevatedButton(
+                                                  onPressed: _loadPreviousPage,
+                                                  child: Text('Atrás'),
+                                                ),
+                                                ElevatedButton(
+                                                  onPressed: _loadNextPage,
+                                                  child: Text('Siguiente'),
+                                                ),
+                                              ],
+                                            )
+                                          : Container(),
+                                      isProvince
+                                          ? Expanded(
+                                              child: Row(
+                                                children: [
+                                                  Expanded(
+                                                    flex: 2,
+                                                    child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              8.0),
+                                                      child: SfCartesianChart(
+                                                        primaryXAxis:
+                                                            CategoryAxis(),
+                                                        title: const ChartTitle(
+                                                            text:
+                                                                'Resultados Electorales por partido politico'),
+                                                        legend: Legend(
+                                                            isVisible: true),
+                                                        tooltipBehavior:
+                                                            TooltipBehavior(
+                                                          enable: true,
+                                                        ),
+                                                        series:
+                                                            _createSeriesProvincia(),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Expanded(
+                                                    child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              8.0),
+                                                      child: SfCircularChart(
+                                                        title: ChartTitle(
+                                                            text:
+                                                                'Total de personas que no emitieron su voto por Provincia '),
+                                                        legend: Legend(
+                                                            isVisible: true),
+                                                        series: <PieSeries<
+                                                            DataGeneralProvincia,
+                                                            String>>[
+                                                          PieSeries<
+                                                              DataGeneralProvincia,
+                                                              String>(
+                                                            explode: true,
+                                                            explodeIndex: 0,
+                                                            dataSource:
+                                                                provinciaData,
+                                                            xValueMapper:
+                                                                (DataGeneralProvincia
+                                                                            mesaData,
+                                                                        _) =>
+                                                                    mesaData
+                                                                        .provincia,
+                                                            yValueMapper:
+                                                                (DataGeneralProvincia
+                                                                            mesaData,
+                                                                        _) =>
+                                                                    mesaData
+                                                                        .noVotantes,
+                                                            dataLabelMapper: (DataGeneralProvincia
                                                                         mesaData,
                                                                     _) =>
                                                                 mesaData
@@ -615,93 +668,95 @@ class _HomeScreenState extends State<HomeScreen> {
                                                                 mesaData
                                                                     .noVotantes
                                                                     .toString(),
-                                                        dataLabelSettings:
-                                                            DataLabelSettings(
-                                                                isVisible:
-                                                                    true),
+                                                            dataLabelSettings:
+                                                                DataLabelSettings(
+                                                                    isVisible:
+                                                                        true),
+                                                          ),
+                                                        ],
                                                       ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        )
-                                      : Expanded(
-                                          child: Row(
-                                            children: [
-                                              Expanded(
-                                                flex: 2,
-                                                child: Padding(
-                                                  padding:
-                                                      const EdgeInsets.all(8.0),
-                                                  child: SfCartesianChart(
-                                                    primaryXAxis:
-                                                        CategoryAxis(),
-                                                    title: ChartTitle(
-                                                        text:
-                                                            'Resultados Electorales por partido politico en la provincia de $provinciaSave'),
-                                                    legend:
-                                                        Legend(isVisible: true),
-                                                    tooltipBehavior:
-                                                        TooltipBehavior(
-                                                      enable: true,
                                                     ),
-                                                    series:
-                                                        _createSeriesDistrito(),
                                                   ),
-                                                ),
+                                                ],
                                               ),
-                                              Expanded(
-                                                child: Padding(
-                                                  padding:
-                                                      const EdgeInsets.all(8.0),
-                                                  child: SfCircularChart(
-                                                    title: ChartTitle(
-                                                        text:
-                                                            'Total de personas que no emitieron su voto por distrito de la provincia de $provincia'),
-                                                    legend:
-                                                        Legend(isVisible: true),
-                                                    series: <PieSeries<
-                                                        DataGeneralDistrito,
-                                                        String>>[
-                                                      PieSeries<
-                                                          DataGeneralDistrito,
-                                                          String>(
-                                                        explode: true,
-                                                        explodeIndex: 0,
-                                                        dataSource:
-                                                            distritoData,
-                                                        xValueMapper:
-                                                            (DataGeneralDistrito
-                                                                        mesaData,
-                                                                    _) =>
-                                                                '${mesaData.distrito} ${mesaData.totalVotos}',
-                                                        yValueMapper:
-                                                            (DataGeneralDistrito
-                                                                        mesaData,
-                                                                    _) =>
-                                                                mesaData
-                                                                    .noVotantes,
-                                                        dataLabelMapper:
-                                                            (DataGeneralDistrito
-                                                                        mesaData,
-                                                                    _) =>
-                                                                '${mesaData.distrito} ${mesaData.noVotantes}',
-                                                        dataLabelSettings:
-                                                            DataLabelSettings(
-                                                                isVisible:
-                                                                    true),
+                                            )
+                                          : Expanded(
+                                              child: Row(
+                                                children: [
+                                                  Expanded(
+                                                    flex: 2,
+                                                    child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              8.0),
+                                                      child: SfCartesianChart(
+                                                        primaryXAxis:
+                                                            CategoryAxis(),
+                                                        title: ChartTitle(
+                                                            text:
+                                                                'Resultados Electorales por partido politico en la provincia de $provinciaSave'),
+                                                        legend: Legend(
+                                                            isVisible: true),
+                                                        tooltipBehavior:
+                                                            TooltipBehavior(
+                                                          enable: true,
+                                                        ),
+                                                        series:
+                                                            _createSeriesDistrito(),
                                                       ),
-                                                    ],
+                                                    ),
                                                   ),
-                                                ),
+                                                  Expanded(
+                                                    child: Padding(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              8.0),
+                                                      child: SfCircularChart(
+                                                        title: ChartTitle(
+                                                            text:
+                                                                'Total de personas que no emitieron su voto por distrito de la provincia de $provincia'),
+                                                        legend: Legend(
+                                                            isVisible: true),
+                                                        series: <PieSeries<
+                                                            DataGeneralDistrito,
+                                                            String>>[
+                                                          PieSeries<
+                                                              DataGeneralDistrito,
+                                                              String>(
+                                                            explode: true,
+                                                            explodeIndex: 0,
+                                                            dataSource:
+                                                                distritoData,
+                                                            xValueMapper:
+                                                                (DataGeneralDistrito
+                                                                            mesaData,
+                                                                        _) =>
+                                                                    '${mesaData.distrito} ${mesaData.totalVotos}',
+                                                            yValueMapper:
+                                                                (DataGeneralDistrito
+                                                                            mesaData,
+                                                                        _) =>
+                                                                    mesaData
+                                                                        .noVotantes,
+                                                            dataLabelMapper:
+                                                                (DataGeneralDistrito
+                                                                            mesaData,
+                                                                        _) =>
+                                                                    '${mesaData.distrito} ${mesaData.noVotantes}',
+                                                            dataLabelSettings:
+                                                                DataLabelSettings(
+                                                                    isVisible:
+                                                                        true),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
-                                            ],
-                                          ),
-                                        ),
-                                ],
-                              ),
+                                            ),
+                                    ],
+                                  ),
                   ),
                 ],
               ),
@@ -913,4 +968,37 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return seriesList;
   }
+}
+
+class MesasDataTableSource extends DataTableSource {
+  final List<DataMesas> data;
+
+  MesasDataTableSource(this.data);
+
+  @override
+  DataRow getRow(int index) {
+    assert(index >= 0);
+    if (index >= data.length) return null!;
+    final DataMesas mesaData = data[index];
+    return DataRow.byIndex(index: index, cells: [
+      DataCell(Text(mesaData.departamento)),
+      DataCell(Text(mesaData.distrito)),
+      DataCell(Text(mesaData.mesaFormatted.toString())),
+      DataCell(Text(mesaData.noVotantes.toString())),
+      DataCell(Text(mesaData.totalVotos.toString())),
+      DataCell(Text(mesaData.votosBlancos.toString())),
+      DataCell(Text(mesaData.votosNulos.toString())),
+      DataCell(Text(mesaData.votosImpug.toString())),
+      DataCell(Text(mesaData.votosObtenidos.toString())),
+    ]);
+  }
+
+  @override
+  bool get isRowCountApproximate => false;
+
+  @override
+  int get rowCount => data.length;
+
+  @override
+  int get selectedRowCount => 0;
 }

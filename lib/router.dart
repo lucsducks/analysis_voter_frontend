@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sociopolitico/screens/home_screen.dart';
 import 'package:sociopolitico/screens/person_screen.dart';
+import 'package:sociopolitico/screens/resultados_screen.dart';
 
 final router = GoRouter(
   routes: [
@@ -12,6 +13,11 @@ final router = GoRouter(
     GoRoute(
       path: '/person',
       pageBuilder: (context, state) => NoTransitionPage(child: PersonScreen()),
+    ),
+    GoRoute(
+      path: '/resultados',
+      pageBuilder: (context, state) =>
+          NoTransitionPage(child: ResultadosScreen()),
     ),
   ],
 );

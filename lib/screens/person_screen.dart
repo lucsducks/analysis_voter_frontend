@@ -184,7 +184,7 @@ class _PersonScreenState extends State<PersonScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Analisis de Resultados Electorales'),
+        title: Text('Analisis de Resultados Electorales por Género'),
         centerTitle: true,
       ),
       body: Row(
@@ -199,8 +199,14 @@ class _PersonScreenState extends State<PersonScreen> {
               ),
               SidebarXItem(
                 icon: Icons.person_3_outlined,
-                label: 'Home',
+                selectable: true,
+                label: 'Personas',
                 onTap: () => context.go('/person'),
+              ),
+              SidebarXItem(
+                icon: Icons.bar_chart_outlined,
+                label: 'Resultados',
+                onTap: () => context.go('/resultados'),
               ),
             ],
           ),
